@@ -1,0 +1,14 @@
+/home/rico/Documents/repos/PokerSim/bin/Debug/net9.0/PokerSim
+/home/rico/Documents/repos/PokerSim/bin/Debug/net9.0/PokerSim.deps.json
+/home/rico/Documents/repos/PokerSim/bin/Debug/net9.0/PokerSim.runtimeconfig.json
+/home/rico/Documents/repos/PokerSim/bin/Debug/net9.0/PokerSim.dll
+/home/rico/Documents/repos/PokerSim/bin/Debug/net9.0/PokerSim.pdb
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/PokerSim.GeneratedMSBuildEditorConfig.editorconfig
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/PokerSim.AssemblyInfoInputs.cache
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/PokerSim.AssemblyInfo.cs
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/PokerSim.csproj.CoreCompileInputs.cache
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/PokerSim.dll
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/refint/PokerSim.dll
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/PokerSim.pdb
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/PokerSim.genruntimeconfig.cache
+/home/rico/Documents/repos/PokerSim/obj/Debug/net9.0/ref/PokerSim.dll
