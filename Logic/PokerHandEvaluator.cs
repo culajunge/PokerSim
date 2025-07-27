@@ -9,75 +9,109 @@ using System.Linq;
 
 public static class PokerHandEvaluator
 {
-    public static HandRank EvaluateBestHand(Card[] cards)
+    public static EvaluatedHand EvaluateBestHand(Card[] cards)
     {
         if (cards.Length < 5)
             throw new ArgumentException("At least 5 cards are required to evaluate a poker hand.");
 
         HandRank bestRank = HandRank.HighCard;
+        Card[] bestCombo = null;
 
         foreach (var combo in GetCombinations(cards, 5))
         {
             var rank = EvaluateFiveCardHand(combo);
-            if (rank > bestRank)
-                bestRank = rank;
+            if (rank.Rank > bestRank)
+            {
+                bestRank = rank.Rank;
+                bestCombo = combo.ToArray(); // ensure we clone the array
+            }
         }
 
-        return bestRank;
+        return new EvaluatedHand(bestRank, bestCombo);
     }
 
-    private static HandRank EvaluateFiveCardHand(Card[] hand)
+    private static HandEvaluation EvaluateFiveCardHand(Card[] hand)
     {
         var ranks = hand.Select(c => (int)c.Rank).ToList();
         var suits = hand.Select(c => c.Suit).ToList();
 
-        ranks.Sort();
+        var grouped = ranks
+            .GroupBy(r => r)
+            .OrderByDescending(g => g.Count())
+            .ThenByDescending(g => g.Key)
+            .ToList();
+
+        var rankCounts = grouped.Select(g => g.Count()).ToList();
+        var sortedRanks = grouped.Select(g => g.Key).ToList();
 
         bool isFlush = suits.Distinct().Count() == 1;
-        bool isStraight = IsStraight(ranks);
+        bool isStraight = IsStraight(ranks, out int highCard);
 
-        var groups = ranks.GroupBy(r => r).Select(g => g.Count()).OrderByDescending(c => c).ToList();
+        if (isFlush && isStraight && highCard == 14)
+            return new HandEvaluation { Rank = HandRank.RoyalFlush, TieBreakers = new List<int> { 14 } };
 
-        if (isFlush && isStraight && ranks.Max() == (int)Ranks.Ace)
-            return HandRank.RoyalFlush;
         if (isFlush && isStraight)
-            return HandRank.StraightFlush;
-        if (groups[0] == 4)
-            return HandRank.FourOfAKind;
-        if (groups[0] == 3 && groups[1] == 2)
-            return HandRank.FullHouse;
-        if (isFlush)
-            return HandRank.Flush;
-        if (isStraight)
-            return HandRank.Straight;
-        if (groups[0] == 3)
-            return HandRank.ThreeOfAKind;
-        if (groups[0] == 2 && groups[1] == 2)
-            return HandRank.TwoPair;
-        if (groups[0] == 2)
-            return HandRank.OnePair;
+            return new HandEvaluation { Rank = HandRank.StraightFlush, TieBreakers = new List<int> { highCard } };
 
-        return HandRank.HighCard;
+        if (rankCounts[0] == 4)
+            return new HandEvaluation
+                { Rank = HandRank.FourOfAKind, TieBreakers = new List<int> { sortedRanks[0], sortedRanks[1] } };
+
+        if (rankCounts[0] == 3 && rankCounts[1] == 2)
+            return new HandEvaluation
+                { Rank = HandRank.FullHouse, TieBreakers = new List<int> { sortedRanks[0], sortedRanks[1] } };
+
+        if (isFlush)
+            return new HandEvaluation { Rank = HandRank.Flush, TieBreakers = ranks.OrderByDescending(r => r).ToList() };
+
+        if (isStraight)
+            return new HandEvaluation { Rank = HandRank.Straight, TieBreakers = new List<int> { highCard } };
+
+        if (rankCounts[0] == 3)
+            return new HandEvaluation
+            {
+                Rank = HandRank.ThreeOfAKind,
+                TieBreakers = new List<int> { sortedRanks[0], sortedRanks[1], sortedRanks[2] }
+            };
+
+        if (rankCounts[0] == 2 && rankCounts[1] == 2)
+            return new HandEvaluation
+            {
+                Rank = HandRank.TwoPair, TieBreakers = new List<int> { sortedRanks[0], sortedRanks[1], sortedRanks[2] }
+            };
+
+        if (rankCounts[0] == 2)
+            return new HandEvaluation
+            {
+                Rank = HandRank.OnePair,
+                TieBreakers = new List<int> { sortedRanks[0] }.Concat(sortedRanks.Skip(1)).ToList()
+            };
+
+        return new HandEvaluation { Rank = HandRank.HighCard, TieBreakers = ranks.OrderByDescending(r => r).ToList() };
     }
 
-    private static bool IsStraight(List<int> sortedRanks)
+    private static bool IsStraight(List<int> ranks, out int highCard)
     {
-        var distinct = sortedRanks.Distinct().ToList();
-        if (distinct.Count < 5)
-            return false;
+        var distinct = ranks.Distinct().OrderBy(r => r).ToList();
+        highCard = 0;
 
         for (int i = 0; i <= distinct.Count - 5; i++)
         {
             if (distinct[i + 4] - distinct[i] == 4)
+            {
+                highCard = distinct[i + 4];
                 return true;
+            }
         }
 
-        // Special case: A-2-3-4-5 (Ace as low)
-        return distinct.Contains((int)Ranks.Ace) &&
-               distinct.Contains((int)Ranks.Two) &&
-               distinct.Contains((int)Ranks.Three) &&
-               distinct.Contains((int)Ranks.Four) &&
-               distinct.Contains((int)Ranks.Five);
+        // Special case: A-2-3-4-5
+        if (distinct.Contains(14) && distinct.Take(4).SequenceEqual(new[] { 2, 3, 4, 5 }))
+        {
+            highCard = 5;
+            return true;
+        }
+
+        return false;
     }
 
     private static IEnumerable<Card[]> GetCombinations(Card[] cards, int choose)
