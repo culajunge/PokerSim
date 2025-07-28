@@ -14,21 +14,35 @@ public static class PokerHandEvaluator
         if (cards.Length < 5)
             throw new ArgumentException("At least 5 cards are required to evaluate a poker hand.");
 
-        HandRank bestRank = HandRank.HighCard;
-        Card[] bestCombo = null;
+        EvaluatedHand bestHand = null;
 
         foreach (var combo in GetCombinations(cards, 5))
         {
             var rank = EvaluateFiveCardHand(combo);
-            if (rank.Rank > bestRank)
+            var ordered = combo.OrderByDescending<Card, object>(c => c.Rank).ToArray();
+            var kickers = cards.Except(ordered).OrderByDescending<Card, object>(c => c.Rank).ToArray();
+
+            var current = new EvaluatedHand(rank.Rank, ordered, kickers);
+
+            if (bestHand == null || current.CompareTo(bestHand) > 0)
             {
-                bestRank = rank.Rank;
-                bestCombo = combo.ToArray(); // ensure we clone the array
+                bestHand = current;
             }
         }
 
-        return new EvaluatedHand(bestRank, bestCombo);
+        return bestHand;
     }
+
+    private static EvaluatedHand CompareTieBreaker(Card[] a, Card[] b)
+    {
+        var evalA = EvaluateBestHand(a);
+        var evalB = EvaluateBestHand(b);
+
+        int result = evalA.CompareTo(evalB);
+        if (result > 0) return evalA;
+        else return evalB;
+    }
+
 
     private static HandEvaluation EvaluateFiveCardHand(Card[] hand)
     {

@@ -91,6 +91,15 @@ class Program
             P(Printer.GetHandWinEfficiency(totalBestHands.ToArray(), totalHands.ToArray()));
 
             P("\n✅ Simulation Complete!\n");
+
+            Printer.SaveResultsToJson(
+                totalHands.ToArray(),
+                totalBestHands.ToArray(),
+                Players,
+                HoleCards,
+                CommunityCards,
+                totalRounds
+            );
         }
     }
 
@@ -324,5 +333,27 @@ class Program
                 Console.WriteLine("\nResuming...");
             }
         };
+    }
+
+    public static void TestRoyalFlush()
+    {
+        // Create a hand with a royal flush in spades
+        var royalFlush = new List<Card>
+        {
+            new Card(Suits.Spades, Ranks.King),
+            new Card(Suits.Spades, Ranks.Jack),
+            new Card(Suits.Spades, Ranks.Queen),
+            new Card(Suits.Spades, Ranks.Ace),
+            new Card(Suits.Spades, Ranks.Ten),
+            new Card(Suits.Hearts, Ranks.Four), // filler
+            new Card(Suits.Clubs, Ranks.Two) // filler
+        };
+
+        var hand = PokerHandEvaluator.EvaluateBestHand(royalFlush.ToArray());
+        Console.WriteLine("Test Hand: " + string.Join(" ", royalFlush));
+        Console.WriteLine("Detected Rank: " + hand.Rank);
+
+        Debug.Assert(hand.Rank == HandRank.RoyalFlush, "❌ Failed to detect Royal Flush");
+        Console.WriteLine("✅ Royal Flush detected correctly.");
     }
 }

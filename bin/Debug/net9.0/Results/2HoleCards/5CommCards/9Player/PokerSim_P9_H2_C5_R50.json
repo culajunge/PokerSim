@@ -1,0 +1,90 @@
+{
+  "Players": 9,
+  "HoleCards": 2,
+  "CommunityCards": 5,
+  "RoundsPlayed": 50,
+  "TotalHands": [
+    {
+      "Name": "HighCard",
+      "Count": 88
+    },
+    {
+      "Name": "OnePair",
+      "Count": 204
+    },
+    {
+      "Name": "TwoPair",
+      "Count": 105
+    },
+    {
+      "Name": "ThreeOfAKind",
+      "Count": 17
+    },
+    {
+      "Name": "Straight",
+      "Count": 21
+    },
+    {
+      "Name": "Flush",
+      "Count": 9
+    },
+    {
+      "Name": "FullHouse",
+      "Count": 6
+    },
+    {
+      "Name": "FourOfAKind",
+      "Count": 0
+    },
+    {
+      "Name": "StraightFlush",
+      "Count": 0
+    },
+    {
+      "Name": "RoyalFlush",
+      "Count": 0
+    }
+  ],
+  "WinningHands": [
+    {
+      "Name": "HighCard",
+      "Count": 0
+    },
+    {
+      "Name": "OnePair",
+      "Count": 6
+    },
+    {
+      "Name": "TwoPair",
+      "Count": 13
+    },
+    {
+      "Name": "ThreeOfAKind",
+      "Count": 11
+    },
+    {
+      "Name": "Straight",
+      "Count": 8
+    },
+    {
+      "Name": "Flush",
+      "Count": 8
+    },
+    {
+      "Name": "FullHouse",
+      "Count": 4
+    },
+    {
+      "Name": "FourOfAKind",
+      "Count": 0
+    },
+    {
+      "Name": "StraightFlush",
+      "Count": 0
+    },
+    {
+      "Name": "RoyalFlush",
+      "Count": 0
+    }
+  ]
+}

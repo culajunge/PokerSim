@@ -2,7 +2,7 @@ namespace PokerSim.Enums;
 
 public enum Ranks
 {
-    Two,
+    Two = 2,
     Three,
     Four,
     Five,
