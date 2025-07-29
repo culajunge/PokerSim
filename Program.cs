@@ -7,9 +7,14 @@ namespace PokerSim;
 
 class Program
 {
+    private static (int start, int end) PlayerRange = (6, 6);
+    private static (int start, int end) HoleCardRange = (2, 2);
+    private static (int start, int end) CommunityCardRange = (5, 5);
+
     private static int Players = 6;
     private static int HoleCards = 2;
     private static int CommunityCards = 5;
+
 
     private static int RoundsPerGame = 10;
     private static int TotalGames = 5;
@@ -27,10 +32,37 @@ class Program
         WriteLineWithColor("🃏 P0K3R Game Simulator", ConsoleColor.Magenta);
         Thread.Sleep(100);
 
+        string testPath = Directory.GetCurrentDirectory(); // or wherever you're writing files
+
+        if (!HasWriteAccess(testPath))
+        {
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.WriteLine($"❌ Write permission denied for directory: {testPath}");
+            Console.WriteLine(
+                "Please run this application with write permissions (e.g., use `chmod +w` or run from a different location).");
+            Console.ResetColor();
+            Environment.Exit(1);
+        }
+        else
+        {
+            Console.WriteLine($"✅ Write permission OK in: {testPath}");
+        }
+
         while (_running)
         {
-            Console.WriteLine("\n🔧 Configure Simulation:\n");
+            Console.WriteLine("\n📋 Main Menu:");
+            Console.WriteLine("1. 🔧 Run Simulation");
+            Console.WriteLine("2. 📂 View Results");
+            Console.Write("Select an option (1/2): ");
+            string? choice = Console.ReadLine();
 
+            if (choice == "2")
+            {
+                ViewResultsMenu();
+                continue;
+            }
+
+            Console.WriteLine("\n🔧 Configure Simulation:\n");
             PrintConfigMenu();
 
             Console.Write("\nStart Simulation?");
@@ -39,68 +71,159 @@ class Program
             SetupCtrlCHandler();
 
             Console.WriteLine("\n⏳ Running simulation...\n");
-            _globalRoundsPlayed = 0;
-            var stopwatch = Stopwatch.StartNew();
-
-            // Start loading animation
-            var cts = new CancellationTokenSource();
-            var loadingTask = Task.Run(() => ShowLoadingAnimation(cts.Token));
-
-            var totalRoundsToPlay = TotalGames * RoundsPerGame;
-
-            var progressCts = new CancellationTokenSource();
-            RenderProgressBar(0, 0, 0, TimeSpan.Zero);
-            var progressTask = Task.Run(() =>
+            for (int players = PlayerRange.start; players <= PlayerRange.end; players++)
             {
-                while (!progressCts.Token.IsCancellationRequested)
+                for (int holeCards = HoleCardRange.start; holeCards <= HoleCardRange.end; holeCards++)
                 {
-                    double progress = (double)_globalRoundsPlayed / totalRoundsToPlay;
-                    RenderProgressBar(progress, _globalRoundsPlayed, totalRoundsToPlay, stopwatch.Elapsed);
-                    Thread.Sleep(100); // Refresh every 100ms
+                    for (int commCards = CommunityCardRange.start; commCards <= CommunityCardRange.end; commCards++)
+                    {
+                        Console.WriteLine($"\n⚙️  Simulating P:{players}, H:{holeCards}, C:{commCards}");
+
+                        Players = players;
+                        HoleCards = holeCards;
+                        CommunityCards = commCards;
+
+                        _globalRoundsPlayed = 0;
+                        var stopwatch = Stopwatch.StartNew();
+
+                        var cts = new CancellationTokenSource();
+                        var loadingTask = Task.Run(() => ShowLoadingAnimation(cts.Token));
+
+                        var totalRoundsToPlay = TotalGames * RoundsPerGame;
+                        var progressCts = new CancellationTokenSource();
+                        RenderProgressBar(0, 0, 0, TimeSpan.Zero);
+                        var progressTask = Task.Run(() =>
+                        {
+                            while (!progressCts.Token.IsCancellationRequested)
+                            {
+                                double progress = (double)_globalRoundsPlayed / totalRoundsToPlay;
+                                RenderProgressBar(progress, _globalRoundsPlayed, totalRoundsToPlay, stopwatch.Elapsed);
+                                Thread.Sleep(100);
+                            }
+                        });
+
+                        var completedGames = StartGamesAsync(TotalGames).GetAwaiter().GetResult();
+                        _games = completedGames;
+
+                        progressCts.Cancel();
+                        progressTask.Wait();
+                        cts.Cancel();
+                        loadingTask.Wait();
+                        Console.WriteLine();
+
+                        var (totalHands, totalBestHands, totalRounds) = SummarizeGames(_games);
+
+                        WriteLineWithColor("📊 Results", ConsoleColor.Green);
+                        P($"Total Rounds Played: {totalRounds}");
+                        WriteLineWithColor("\n👐 Hand Occurrences:", ConsoleColor.Yellow);
+                        int totalHandsPlayed = players * totalRounds;
+                        P(Printer.GetHandSummaryTotal(totalHands.ToArray(), totalHandsPlayed));
+
+                        WriteLineWithColor("\n🏆 Winning Hands Summary:", ConsoleColor.Cyan);
+                        P(Printer.GetHandSummaryWinning(totalBestHands.ToArray(), totalRounds));
+
+                        WriteLineWithColor("\n📈 Win Efficiency (per hand type):", ConsoleColor.Magenta);
+                        P(Printer.GetHandWinEfficiency(totalBestHands.ToArray(), totalHands.ToArray()));
+                        P("\n✅ Simulation Complete!\n");
+
+                        Printer.SaveResultsToJson(
+                            totalHands.ToArray(),
+                            totalBestHands.ToArray(),
+                            players,
+                            holeCards,
+                            commCards,
+                            totalRounds
+                        );
+
+                        _games.Clear(); // Prepare for next combo
+                    }
                 }
-            });
-
-            // Run simulation
-            var completedGames = StartGamesAsync(TotalGames).GetAwaiter().GetResult();
-            _games = completedGames;
-
-            progressCts.Cancel();
-            progressTask.Wait();
-            Console.WriteLine();
-
-            // Stop animation
-            cts.Cancel();
-            loadingTask.Wait();
-            Console.WriteLine(); // line break
-
-            // Results
-            var (totalHands, totalBestHands, totalRounds) = SummarizeGames(_games);
-
-            WriteLineWithColor("📊 Results", ConsoleColor.Green);
-            P($"Total Rounds Played: {totalRounds}");
-
-            WriteLineWithColor("\n👐 Hand Occurrences:", ConsoleColor.Yellow);
-            int totalHandsPlayed = Players * totalRounds;
-            P(Printer.GetHandSummaryTotal(totalHands.ToArray(), totalHandsPlayed));
-
-            WriteLineWithColor("\n🏆 Winning Hands Summary:", ConsoleColor.Cyan);
-            P(Printer.GetHandSummaryWinning(totalBestHands.ToArray(), totalRounds));
-
-// Optional:
-            WriteLineWithColor("\n📈 Win Efficiency (per hand type):", ConsoleColor.Magenta);
-            P(Printer.GetHandWinEfficiency(totalBestHands.ToArray(), totalHands.ToArray()));
-
-            P("\n✅ Simulation Complete!\n");
-
-            Printer.SaveResultsToJson(
-                totalHands.ToArray(),
-                totalBestHands.ToArray(),
-                Players,
-                HoleCards,
-                CommunityCards,
-                totalRounds
-            );
+            }
         }
+    }
+
+    static void ViewResultsMenu()
+    {
+        string resultsRoot = Path.Combine(Directory.GetCurrentDirectory(), "Results");
+
+        if (!Directory.Exists(resultsRoot))
+        {
+            WriteLineWithColor("❌ Results folder not found.", ConsoleColor.Red);
+            return;
+        }
+
+        string? holeFolder = SelectOptionFromDirectory(resultsRoot, "🎴 Hole Card Options");
+        if (holeFolder == null) return;
+
+        string holePath = Path.Combine(resultsRoot, holeFolder);
+        string? commFolder = SelectOptionFromDirectory(holePath, "🃏 Community Card Options");
+        if (commFolder == null) return;
+
+        string commPath = Path.Combine(holePath, commFolder);
+        string? playerFolder = SelectOptionFromDirectory(commPath, "👥 Player Count Options");
+        if (playerFolder == null) return;
+
+        string playerPath = Path.Combine(commPath, playerFolder);
+        string[] jsonFiles = Directory.GetFiles(playerPath, "*.json");
+
+        if (jsonFiles.Length == 0)
+        {
+            WriteLineWithColor("⚠ No result files found.", ConsoleColor.Yellow);
+            return;
+        }
+
+        Console.WriteLine("\n📄 Available Result Files:");
+        for (int i = 0; i < jsonFiles.Length; i++)
+        {
+            Console.WriteLine($"{i + 1}. {Path.GetFileName(jsonFiles[i])}");
+        }
+
+        Console.Write("Select file to view: ");
+        if (int.TryParse(Console.ReadLine(), out int fileChoice) &&
+            fileChoice >= 1 && fileChoice <= jsonFiles.Length)
+        {
+            string filePath = jsonFiles[fileChoice - 1];
+            Console.WriteLine(filePath + "\n");
+            Printer.PrintFromJson(filePath);
+            Console.ResetColor();
+        }
+        else
+        {
+            WriteLineWithColor("❌ Invalid file choice.", ConsoleColor.Red);
+        }
+    }
+
+    static string? SelectOptionFromDirectory(string path, string label)
+    {
+        var dirs = Directory.GetDirectories(path)
+            .Select(d => Path.GetFileName(d))
+            .ToList();
+
+        if (dirs.Count == 0)
+        {
+            WriteLineWithColor($"⚠ No options found in {label}.", ConsoleColor.Yellow);
+            return null;
+        }
+
+        Console.WriteLine($"\n{label}:");
+        foreach (var dir in dirs)
+        {
+            Console.WriteLine($"- {dir}");
+        }
+
+        Console.Write("Select option (by number from folder name): ");
+        string? input = Console.ReadLine();
+
+        if (int.TryParse(input, out int number))
+        {
+            // Match any folder that starts with that number (e.g., 5 -> "5CommCards")
+            string? match = dirs.FirstOrDefault(d => d.StartsWith(number.ToString()));
+            if (match != null)
+                return match;
+        }
+
+        WriteLineWithColor("❌ Invalid selection.", ConsoleColor.Red);
+        return null;
     }
 
 
@@ -137,8 +260,8 @@ class Program
         // Initialize empty hands of each type (assuming enum HandRank from 0–9)
         for (int i = 0; i < HandTypes; i++)
         {
-            totalHands[i] = new Hand((HandRank)i); // e.g. HandRank.Pair, HandRank.TwoPair, etc.
-            totalBestHands[i] = new Hand((HandRank)i);
+            totalHands[i] = new Hand(((HandRank)i)); // e.g. HandRank.Pair, HandRank.TwoPair, etc.
+            totalBestHands[i] = new Hand(((HandRank)i));
         }
 
         foreach (var game in games)
@@ -179,11 +302,12 @@ class Program
 
     static void PrintConfigMenu()
     {
-        P("🎛️ Configuration (press Enter to keep current)");
+        P("🎛️ Configuration (enter a single number or range like 3-6)");
 
-        Players = AskInt("👥 Number of Players", Players);
-        HoleCards = AskInt("🎴 Hole Cards per Player", HoleCards);
-        CommunityCards = AskInt("🃏 Community Cards", CommunityCards);
+        PlayerRange = AskRange("👥 Number of Players", PlayerRange.start);
+        HoleCardRange = AskRange("🎴 Hole Cards per Player", HoleCardRange.start);
+        CommunityCardRange = AskRange("🃏 Community Cards", CommunityCardRange.start);
+
         RoundsPerGame = AskInt("🔁 Rounds per Game", RoundsPerGame);
         TotalGames = AskInt("♻️ Total Games to Simulate", TotalGames);
 
@@ -294,11 +418,41 @@ class Program
         return int.TryParse(input, out var val) ? val : current;
     }
 
+    static (int start, int end) AskRange(string label, int current)
+    {
+        Console.ForegroundColor = ConsoleColor.DarkCyan;
+        Console.Write($"{label} [{current}]: ");
+        Console.ResetColor();
+        string input = Console.ReadLine()!;
+
+        if (string.IsNullOrWhiteSpace(input))
+            return (current, current);
+
+        if (input.Contains('-'))
+        {
+            var parts = input.Split('-');
+            if (parts.Length == 2 &&
+                int.TryParse(parts[0], out int start) &&
+                int.TryParse(parts[1], out int end))
+            {
+                return (start, end);
+            }
+        }
+        else if (int.TryParse(input, out int val))
+        {
+            return (val, val);
+        }
+
+        WriteLineWithColor("❌ Invalid input. Use a number or range (e.g., 3-7)", ConsoleColor.Red);
+        return AskRange(label, current);
+    }
+
+
     static void PrintConfig()
     {
-        P($"👥 Players: {Players}");
-        P($"🎴 Hole Cards: {HoleCards}");
-        P($"🃏 Community Cards: {CommunityCards}");
+        P($"👥 Players: {PlayerRange.start}-{PlayerRange.end}");
+        P($"🎴 Hole Cards: {HoleCardRange.start}-{HoleCardRange.end}");
+        P($"🃏 Community Cards: {CommunityCardRange.start}-{CommunityCardRange.end}");
         P($"🔁 Rounds per Game: {RoundsPerGame}");
         P($"♻️ Total Games: {TotalGames}");
     }
@@ -355,5 +509,20 @@ class Program
 
         Debug.Assert(hand.Rank == HandRank.RoyalFlush, "❌ Failed to detect Royal Flush");
         Console.WriteLine("✅ Royal Flush detected correctly.");
+    }
+
+    public static bool HasWriteAccess(string directoryPath)
+    {
+        try
+        {
+            string testFile = Path.Combine(directoryPath, "permission_test.tmp");
+            File.WriteAllText(testFile, "test");
+            File.Delete(testFile);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
     }
 }

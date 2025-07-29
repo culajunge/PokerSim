@@ -11,8 +11,9 @@ public static class PokerHandEvaluator
 {
     public static EvaluatedHand EvaluateBestHand(Card[] cards)
     {
+        /*
         if (cards.Length < 5)
-            throw new ArgumentException("At least 5 cards are required to evaluate a poker hand.");
+            throw new ArgumentException("At least 5 cards are required to evaluate a poker hand.");*/
 
         EvaluatedHand bestHand = null;
 

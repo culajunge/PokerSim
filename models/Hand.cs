@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using PokerSim.Enums;
 
 namespace PokerSim.models;

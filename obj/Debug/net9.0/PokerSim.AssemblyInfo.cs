@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("PokerSim")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a1e30b49d69360e1af791c664f2a57e7e6afbb2d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9c5201deaebfea48b6971949e925e14c6d37cf97")]
 [assembly: System.Reflection.AssemblyProductAttribute("PokerSim")]
 [assembly: System.Reflection.AssemblyTitleAttribute("PokerSim")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
